@@ -223,3 +223,4 @@ userSchema.methods.calculateOrderStats = async function calculateOrderStats() {
 const UserModel = mongoose.model<IUser, IUserModel>('user', userSchema)
 
 export default UserModel
+user
