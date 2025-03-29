@@ -26,20 +26,22 @@ export const getOrders = async (
         search,
       } = req.query
   
-      // Защита от агрегационной инъекции на уровне query
+      // Защита от агрегационной инъекции
       if (typeof sortField !== 'string' || typeof search !== 'string') {
         return res.status(400).json({ message: 'Неверные параметры запроса' })
       }
   
+      // Нормализация лимита и страницы
       const parsedLimit = Number(limit)
       const safeLimit =
-      !Number.isFinite(parsedLimit) || parsedLimit <= 0
-      ? 10
-      : Math.min(parsedLimit, 10)
-      
+        !Number.isFinite(parsedLimit) || parsedLimit <= 0
+          ? 10
+          : Math.min(parsedLimit, 10)
+  
       const parsedPage = Number(page)
-      const safePage = !Number.isFinite(parsedPage) || parsedPage < 1 ? 1 : parsedPage
-            
+      const safePage =
+        !Number.isFinite(parsedPage) || parsedPage < 1 ? 1 : parsedPage
+  
       const filters: FilterQuery<Partial<IOrder>> = {}
   
       if (status && typeof status === 'string') {
@@ -107,7 +109,7 @@ export const getOrders = async (
       if (allowedSortFields.includes(sortField)) {
         sort[sortField] = sortOrder === 'desc' ? -1 : 1
       } else {
-        sort.createdAt = -1 // fallback
+        sort.createdAt = -1
       }
   
       pipeline.push(
@@ -130,12 +132,12 @@ export const getOrders = async (
       const totalOrders = await Order.countDocuments(filters)
       const totalPages = Math.ceil(totalOrders / safeLimit)
   
-      res.status(200).json({
+      return res.status(200).json({
         orders,
         pagination: {
           totalOrders,
           totalPages,
-          currentPage: Number(page),
+          currentPage: safePage,
           pageSize: safeLimit,
         },
       })
@@ -143,6 +145,7 @@ export const getOrders = async (
       next(error)
     }
   }
+  
     
   export const getOrdersCurrentUser = async (
     req: Request,
