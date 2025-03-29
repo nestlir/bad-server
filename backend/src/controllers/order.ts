@@ -27,9 +27,12 @@ export const getOrders = async (
       } = req.query
   
       // Защита от агрегационной инъекции
-      if (typeof sortField !== 'string' || typeof search !== 'string') {
+      if (
+        (sortField && (typeof sortField !== 'string' || Array.isArray(sortField))) ||
+        (search && (typeof search !== 'string' || Array.isArray(search)))
+      ) {
         return res.status(400).json({ message: 'Неверные параметры запроса' })
-      }
+      }         
   
       // Нормализация лимита и страницы
       const parsedLimit = Number(limit)
