@@ -6,7 +6,7 @@ import Order, { IOrder } from '../models/order'
 import Product, { IProduct } from '../models/product'
 import User from '../models/user'
 
-// GET /orders (для админа)
+// GET /orders (admin)
 export const getOrders = async (
     req: Request,
     res: Response,
@@ -71,16 +71,14 @@ export const getOrders = async (
         { $unwind: '$products' },
       ]
   
-      const isSafe = /^[\wа-яА-ЯёЁ0-9\s\-.,]+$/.test(String(search))
-      if (search && typeof search === 'string' && search.length < 100 && isSafe) {
+      const isSafe = typeof search === 'string' && search.length < 100 && /^[\wа-яА-ЯёЁ0-9\s\-.,]+$/.test(search)
+      if (search && isSafe) {
         const searchRegex = new RegExp(search, 'i')
         const searchNumber = Number(search)
         const searchConditions: any[] = [{ 'products.title': searchRegex }]
-  
         if (!Number.isNaN(searchNumber)) {
           searchConditions.push({ orderNumber: searchNumber })
         }
-  
         aggregatePipeline.push({ $match: { $or: searchConditions } })
         filters.$or = searchConditions
       }
@@ -123,8 +121,7 @@ export const getOrders = async (
     } catch (error) {
       next(error)
     }
-  }
-  
+  }  
 
   export const getOrdersCurrentUser = async (
     req: Request,

@@ -4,6 +4,7 @@ import { extname } from 'path'
 import crypto from 'crypto'
 import BadRequestError from '../errors/bad-request-error'
 
+// POST /upload
 export const uploadFile = async (
   req: Request,
   res: Response,
@@ -14,17 +15,16 @@ export const uploadFile = async (
   }
 
   try {
-    // Сгенерируем безопасное имя: random + расширение
-    const ext = extname(req.file.originalname)
-    const safeFileName = `${crypto.randomBytes(16).toString('hex')}${ext}`
+    // 📦 Генерация безопасного имени файла
+    const extension = extname(req.file.originalname)
+    const safeFileName = `${crypto.randomBytes(16).toString('hex')}${extension}`
 
     const fileName = process.env.UPLOAD_PATH
       ? `/${process.env.UPLOAD_PATH}/${safeFileName}`
       : `/${safeFileName}`
 
-    return res.status(constants.HTTP_STATUS_CREATED).send({
-      fileName, // ✅ Только безопасное имя
-    })
+    // ✅ Возвращаем только безопасное имя — без originalName
+    return res.status(constants.HTTP_STATUS_CREATED).send({ fileName })
   } catch (error) {
     return next(error)
   }
