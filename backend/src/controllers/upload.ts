@@ -13,14 +13,10 @@ export const uploadFile = async (
   }
 
   try {
-    // 🛡 Используем имя, сгенерированное multer (уже безопасное)
-    const fileName = process.env.UPLOAD_PATH_TEMP
-      ? `/${process.env.UPLOAD_PATH_TEMP}/${req.file.filename}`
-      : `/${req.file.filename}`
-
-      return res.status(constants.HTTP_STATUS_CREATED).send({
-        fileName,
-        originalName: req.file.originalname,
+    // Возвращаем только безопасное имя (генерируется multer)
+    return res.status(constants.HTTP_STATUS_CREATED).send({
+      fileName: `/uploads/${req.file.filename}`,
+      originalName: req.file.originalname
     })
   } catch (error) {
     return next(error)
