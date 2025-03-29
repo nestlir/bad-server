@@ -7,7 +7,6 @@ import Product, { IProduct } from '../models/product'
 import User from '../models/user'
 
 // GET /orders (admin)
-// GET /orders (admin)
 export const getOrders = async (
     req: Request,
     res: Response,
@@ -120,7 +119,6 @@ export const getOrders = async (
       }
   
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
-      const sort: Record<string, 1 | -1> = {}
       
       if (
         typeof sortField !== 'string' ||
@@ -129,8 +127,10 @@ export const getOrders = async (
       ) {
         return res.status(400).json({ message: 'Недопустимое поле сортировки' })
       }
-
+      
+      const sort: Record<string, 1 | -1> = {}
       sort[sortField] = sortOrder === 'desc' ? -1 : 1
+      
 
       pipeline.push(
         { $sort: sort },
