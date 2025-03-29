@@ -89,14 +89,15 @@ export const getOrders = async (
         pipeline.push({ $match: { $or: conditions } })
       }
   
-      const sort: Record<string, 1 | -1> = {}
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
-      if (allowedSortFields.includes(sortField as string)) {
-        sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
+      const sort: Record<string, 1 | -1> = {}
+      
+      if (typeof sortField === 'string' && allowedSortFields.includes(sortField)) {
+        sort[sortField] = sortOrder === 'desc' ? -1 : 1
       } else {
-        sort.createdAt = -1 // fallback sort
+        sort.createdAt = -1 // fallback
       }
-  
+
       pipeline.push(
         { $sort: sort },
         { $skip: (Number(page) - 1) * safeLimit },
