@@ -26,6 +26,11 @@ export const getOrders = async (
         search,
       } = req.query
   
+      // Защита от агрегационной инъекции на уровне query
+      if (typeof sortField !== 'string' || typeof search !== 'string') {
+        return res.status(400).json({ message: 'Неверные параметры запроса' })
+      }
+  
       const safeLimit = Math.min(Number(limit), 10)
       const filters: FilterQuery<Partial<IOrder>> = {}
   
@@ -85,19 +90,18 @@ export const getOrders = async (
         if (!Number.isNaN(searchNumber)) {
           conditions.push({ orderNumber: searchNumber })
         }
-  
         pipeline.push({ $match: { $or: conditions } })
       }
   
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
       const sort: Record<string, 1 | -1> = {}
-      
-      if (typeof sortField === 'string' && allowedSortFields.includes(sortField)) {
+  
+      if (allowedSortFields.includes(sortField)) {
         sort[sortField] = sortOrder === 'desc' ? -1 : 1
       } else {
         sort.createdAt = -1 // fallback
       }
-
+  
       pipeline.push(
         { $sort: sort },
         { $skip: (Number(page) - 1) * safeLimit },
@@ -131,7 +135,7 @@ export const getOrders = async (
       next(error)
     }
   }
-  
+    
   export const getOrdersCurrentUser = async (
     req: Request,
     res: Response,
