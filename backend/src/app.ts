@@ -25,7 +25,11 @@ app.set('trust proxy', true)
 app.use(cookieParser())
 
 // 🌍 Разрешить CORS (можно ограничить origin в проде)
-app.use(cors())
+app.use(cors({
+    origin: 'http://localhost:5173',
+    credentials: true,
+  }))
+  
 // app.use(cors({ origin: ORIGIN_ALLOW, credentials: true }))
 
 // 🚫 Ограничение размера тела запроса
