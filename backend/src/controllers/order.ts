@@ -23,7 +23,7 @@ export const getOrders = async (
         totalAmountTo,
         orderDateFrom,
         orderDateTo,
-        search,
+        search= '',
       } = req.query
   
       // Защита от агрегационной инъекции
