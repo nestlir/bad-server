@@ -22,7 +22,6 @@ const storage = multer.diskStorage({
       )
     )
   },
-
   filename: (
     _req: Request,
     file: Express.Multer.File,
@@ -40,25 +39,24 @@ const allowedTypes = [
   'image/jpeg',
   'image/gif',
   'image/svg+xml',
-  'image/webp', // ← добавили!
-  'application/octet-stream' // ← на всякий случай
+  'image/webp'
 ]
 
 const fileFilter = (
-    _req: Request,
-    file: Express.Multer.File,
-    cb: FileFilterCallback
-  ) => {
-    console.log('📎 mimetype:', file.mimetype)
-    const isAllowed = allowedTypes.includes(file.mimetype)
-    cb(null, isAllowed)
+  _req: Request,
+  file: Express.Multer.File,
+  cb: FileFilterCallback
+) => {
+  if (!allowedTypes.includes(file.mimetype)) {
+    return cb(null, false)
+  }
+  return cb(null, true)
 }
-  
 
 export default multer({
   storage,
   fileFilter,
   limits: {
-    fileSize: 1 * 1024 * 1024, // 1MB
-  },
+    fileSize: 5 * 1024 * 1024 // 5MB
+  }
 })

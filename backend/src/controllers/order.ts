@@ -122,13 +122,16 @@ export const getOrders = async (
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
       const sort: Record<string, 1 | -1> = {}
       
-      const isValidSort = allowedSortFields.includes(sortField as string)
-      if (isValidSort) {
-        sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
-    } else {
+      if (
+        typeof sortField !== 'string' ||
+        Array.isArray(sortField) ||
+        !allowedSortFields.includes(sortField)
+      ) {
         return res.status(400).json({ message: 'Недопустимое поле сортировки' })
-    }
-    
+      }
+
+      sort[sortField] = sortOrder === 'desc' ? -1 : 1
+
       pipeline.push(
         { $sort: sort },
         { $skip: (safePage - 1) * safeLimit },
