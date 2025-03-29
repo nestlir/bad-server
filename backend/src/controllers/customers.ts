@@ -4,9 +4,7 @@ import NotFoundError from '../errors/not-found-error'
 import Order from '../models/order'
 import User, { IUser } from '../models/user'
 
-// TODO: Добавить guard admin
-// eslint-disable-next-line max-len
-// Get GET /customers?page=2&limit=5&sort=totalAmount&order=desc&registrationDateFrom=2023-01-01&registrationDateTo=2023-12-31&lastOrderDateFrom=2023-01-01&lastOrderDateTo=2023-12-31&totalAmountFrom=100&totalAmountTo=1000&orderCountFrom=1&orderCountTo=10
+// GET /customers
 export const getCustomers = async (
     req: Request,
     res: Response,
@@ -91,8 +89,8 @@ export const getCustomers = async (
             }
         }
 
-        if (search) {
-            const searchRegex = new RegExp(search as string, 'i')
+        if (search && typeof search === 'string' && search.length < 100) {
+            const searchRegex = new RegExp(search, 'i')
             const orders = await Order.find(
                 {
                     $or: [{ deliveryAddress: searchRegex }],
@@ -109,7 +107,6 @@ export const getCustomers = async (
         }
 
         const sort: { [key: string]: any } = {}
-
         if (sortField && sortOrder) {
             sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
         }
@@ -124,15 +121,7 @@ export const getCustomers = async (
             'orders',
             {
                 path: 'lastOrder',
-                populate: {
-                    path: 'products',
-                },
-            },
-            {
-                path: 'lastOrder',
-                populate: {
-                    path: 'customer',
-                },
+                populate: ['products', 'customer'],
             },
         ])
 
@@ -140,7 +129,17 @@ export const getCustomers = async (
         const totalPages = Math.ceil(totalUsers / Number(limit))
 
         res.status(200).json({
-            customers: users,
+            customers: users.map((u) => ({
+                _id: u._id,
+                name: u.name,
+                email: u.email,
+                roles: u.roles,
+                totalAmount: u.totalAmount,
+                orderCount: u.orderCount,
+                lastOrderDate: u.lastOrderDate,
+                orders: u.orders,
+                lastOrder: u.lastOrder,
+            })),
             pagination: {
                 totalUsers,
                 totalPages,
@@ -153,38 +152,44 @@ export const getCustomers = async (
     }
 }
 
-// TODO: Добавить guard admin
-// Get /customers/:id
+// GET /customers/:id
 export const getCustomerById = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const user = await User.findById(req.params.id).populate([
-            'orders',
-            'lastOrder',
-        ])
-        res.status(200).json(user)
+        const id = typeof req.params.id === 'string' ? req.params.id : ''
+        const user = await User.findById(id).populate(['orders', 'lastOrder'])
+        res.status(200).json({
+            _id: user?._id,
+            name: user?.name,
+            email: user?.email,
+            roles: user?.roles,
+            orders: user?.orders,
+            lastOrder: user?.lastOrder,
+        })
     } catch (error) {
         next(error)
     }
 }
 
-// TODO: Добавить guard admin
-// Patch /customers/:id
+// PATCH /customers/:id
 export const updateCustomer = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
+    const name = typeof req.body.name === 'string' ? req.body.name : undefined
+    const email = typeof req.body.email === 'string' ? req.body.email : undefined
+    const roles = Array.isArray(req.body.roles) ? req.body.roles : undefined
+
     try {
+        const id = typeof req.params.id === 'string' ? req.params.id : ''
         const updatedUser = await User.findByIdAndUpdate(
-            req.params.id,
-            req.body,
-            {
-                new: true,
-            }
+            id,
+            { name, email, roles },
+            { new: true, runValidators: true }
         )
             .orFail(
                 () =>
@@ -193,27 +198,40 @@ export const updateCustomer = async (
                     )
             )
             .populate(['orders', 'lastOrder'])
-        res.status(200).json(updatedUser)
+
+        res.status(200).json({
+            _id: updatedUser._id,
+            name: updatedUser.name,
+            email: updatedUser.email,
+            roles: updatedUser.roles,
+            orders: updatedUser.orders,
+            lastOrder: updatedUser.lastOrder,
+        })
     } catch (error) {
         next(error)
     }
 }
 
-// TODO: Добавить guard admin
-// Delete /customers/:id
+// DELETE /customers/:id
 export const deleteCustomer = async (
     req: Request,
     res: Response,
     next: NextFunction
 ) => {
     try {
-        const deletedUser = await User.findByIdAndDelete(req.params.id).orFail(
+        const id = typeof req.params.id === 'string' ? req.params.id : ''
+        const deletedUser = await User.findByIdAndDelete(id).orFail(
             () =>
                 new NotFoundError(
                     'Пользователь по заданному id отсутствует в базе'
                 )
         )
-        res.status(200).json(deletedUser)
+        res.status(200).json({
+            _id: deletedUser._id,
+            email: deletedUser.email,
+            name: deletedUser.name,
+            roles: deletedUser.roles,
+        })
     } catch (error) {
         next(error)
     }
