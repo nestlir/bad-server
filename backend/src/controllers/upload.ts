@@ -1,8 +1,7 @@
-import { NextFunction, Request, Response } from 'express'
+import { Request, Response, NextFunction } from 'express'
 import { constants } from 'http2'
 import BadRequestError from '../errors/bad-request-error'
 
-// POST /upload
 export const uploadFile = async (
   req: Request,
   res: Response,
@@ -13,14 +12,14 @@ export const uploadFile = async (
   }
 
   try {
-    // Возвращаем только безопасное имя (генерируется multer)
-    return res.status(constants.HTTP_STATUS_CREATED).send({
-      fileName: `/uploads/${req.file.filename}`,
-      originalName: req.file.originalname
+    // ✅ Возвращаем безопасный путь
+    const fileName = `/uploads/${req.file.filename}`
+
+    return res.status(constants.HTTP_STATUS_CREATED).json({
+      fileName
+      // можно также вернуть originalName отдельно, если нужно
     })
   } catch (error) {
     return next(error)
   }
 }
-
-export default {}
