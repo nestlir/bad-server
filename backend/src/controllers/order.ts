@@ -33,7 +33,7 @@ export const getOrders = async (
         (req.query.search && (typeof req.query.search !== 'string' || Array.isArray(req.query.search)))
       ) {
         return res.status(400).json({ message: 'Неверные параметры запроса' })
-      }
+      }      
   
       // Нормализация лимита и страницы
       const parsedLimit = Number(limit)
@@ -121,13 +121,14 @@ export const getOrders = async (
   
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
       const sort: Record<string, 1 | -1> = {}
-  
-      if (allowedSortFields.includes(sortField as string)) {
+      
+      const isValidSort = allowedSortFields.includes(sortField as string)
+      if (isValidSort) {
         sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
-      } else {
-        sort.createdAt = -1
-      }
-  
+    } else {
+        return res.status(400).json({ message: 'Недопустимое поле сортировки' })
+    }
+    
       pipeline.push(
         { $sort: sort },
         { $skip: (safePage - 1) * safeLimit },

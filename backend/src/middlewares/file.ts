@@ -45,16 +45,15 @@ const allowedTypes = [
 ]
 
 const fileFilter = (
-  _req: Request,
-  file: Express.Multer.File,
-  cb: FileFilterCallback
-) => {
-  console.log('📎 upload mimetype:', file.mimetype)
-  if (!allowedTypes.includes(file.mimetype)) {
-    return cb(null, false)
-  }
-  return cb(null, true)
+    _req: Request,
+    file: Express.Multer.File,
+    cb: FileFilterCallback
+  ) => {
+    console.log('📎 mimetype:', file.mimetype)
+    const isAllowed = allowedTypes.includes(file.mimetype)
+    cb(null, isAllowed)
 }
+  
 
 export default multer({
   storage,
