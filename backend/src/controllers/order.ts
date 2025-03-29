@@ -31,7 +31,15 @@ export const getOrders = async (
         return res.status(400).json({ message: 'Неверные параметры запроса' })
       }
   
-      const safeLimit = Math.min(Number(limit), 10)
+      const parsedLimit = Number(limit)
+      const safeLimit =
+      !Number.isFinite(parsedLimit) || parsedLimit <= 0
+      ? 10
+      : Math.min(parsedLimit, 10)
+      
+      const parsedPage = Number(page)
+      const safePage = !Number.isFinite(parsedPage) || parsedPage < 1 ? 1 : parsedPage
+            
       const filters: FilterQuery<Partial<IOrder>> = {}
   
       if (status && typeof status === 'string') {
@@ -104,7 +112,7 @@ export const getOrders = async (
   
       pipeline.push(
         { $sort: sort },
-        { $skip: (Number(page) - 1) * safeLimit },
+        { $skip: (safePage - 1) * safeLimit },
         { $limit: safeLimit },
         {
           $project: {
