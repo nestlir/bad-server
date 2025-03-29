@@ -119,14 +119,22 @@ export const getOrders = async (
       }
   
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
+      const isValidSortField =
+      typeof sortField === 'string' && 
+      allowedSortFields.includes(sortField) &&
+      !sortField.includes('$') &&
+      !sortField.includes('.') &&
+      !sortField.includes('{') &&
+      !sortField.includes('[')
       
-      if (
-        typeof sortField !== 'string' ||
-        Array.isArray(sortField) ||
-        !allowedSortFields.includes(sortField)
-      ) {
+      if (!isValidSortField) {
         return res.status(400).json({ message: 'Недопустимое поле сортировки' })
-      }
+    }
+
+    const isValidSortOrder = sortOrder === 'asc' || sortOrder === 'desc'
+    if (!isValidSortOrder) {
+        return res.status(400).json({ message: 'Недопустимый порядок сортировки' })
+    }
       
       const sort: Record<string, 1 | -1> = {}
       sort[sortField] = sortOrder === 'desc' ? -1 : 1
