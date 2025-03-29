@@ -49,7 +49,7 @@ export const getOrders = async (
         filters.createdAt = { ...filters.createdAt, $lte: new Date(orderDateTo as string) }
       }
   
-      const aggregatePipeline: any[] = [
+      const pipeline: any[] = [
         { $match: filters },
         {
           $lookup: {
@@ -68,44 +68,52 @@ export const getOrders = async (
           },
         },
         { $unwind: '$customer' },
-        { $unwind: '$products' },
       ]
   
-      const isSafe = typeof search === 'string' && search.length < 100 && /^[\wа-яА-ЯёЁ0-9\s\-.,]+$/.test(search)
-      if (search && isSafe) {
+      const isSafeSearch =
+        typeof search === 'string' &&
+        search.length < 100 &&
+        /^[\wа-яА-ЯёЁ0-9\s\-.,]+$/.test(search)
+  
+      if (search && isSafeSearch) {
         const searchRegex = new RegExp(search, 'i')
         const searchNumber = Number(search)
-        const searchConditions: any[] = [{ 'products.title': searchRegex }]
+        const conditions: any[] = [
+          { 'products.title': searchRegex },
+          { 'customer.name': searchRegex },
+        ]
         if (!Number.isNaN(searchNumber)) {
-          searchConditions.push({ orderNumber: searchNumber })
+          conditions.push({ orderNumber: searchNumber })
         }
-        aggregatePipeline.push({ $match: { $or: searchConditions } })
-        filters.$or = searchConditions
+  
+        pipeline.push({ $match: { $or: conditions } })
       }
   
       const sort: Record<string, 1 | -1> = {}
-      if (sortField && sortOrder) {
+      const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
+      if (allowedSortFields.includes(sortField as string)) {
         sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
+      } else {
+        sort.createdAt = -1 // fallback sort
       }
   
-      aggregatePipeline.push(
+      pipeline.push(
         { $sort: sort },
         { $skip: (Number(page) - 1) * safeLimit },
         { $limit: safeLimit },
         {
-          $group: {
-            _id: '$_id',
-            orderNumber: { $first: '$orderNumber' },
-            status: { $first: '$status' },
-            totalAmount: { $first: '$totalAmount' },
-            products: { $push: '$products' },
-            customer: { $first: '$customer' },
-            createdAt: { $first: '$createdAt' },
+          $project: {
+            orderNumber: 1,
+            status: 1,
+            totalAmount: 1,
+            products: 1,
+            customer: 1,
+            createdAt: 1,
           },
         }
       )
   
-      const orders = await Order.aggregate(aggregatePipeline)
+      const orders = await Order.aggregate(pipeline)
       const totalOrders = await Order.countDocuments(filters)
       const totalPages = Math.ceil(totalOrders / safeLimit)
   
@@ -121,8 +129,8 @@ export const getOrders = async (
     } catch (error) {
       next(error)
     }
-  }  
-
+  }
+  
   export const getOrdersCurrentUser = async (
     req: Request,
     res: Response,
