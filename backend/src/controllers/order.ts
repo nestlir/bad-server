@@ -13,6 +13,17 @@ export const getOrders = async (
     next: NextFunction
   ) => {
     try {
+      const {query} = req
+  
+      // 🚫 Проверка типов ДО деструктуризации (ловит вложенные объекты, инъекции и множественные значения)
+      if (
+        typeof query.sortField !== 'string' ||
+        typeof query.sortOrder !== 'string' ||
+        typeof query.search !== 'string'
+      ) {
+        return res.status(400).json({ message: 'Неверные параметры запроса' })
+      }
+  
       const {
         page = 1,
         limit = 10,
@@ -24,17 +35,8 @@ export const getOrders = async (
         orderDateFrom,
         orderDateTo,
         search = '',
-      } = req.query
+      } = query
   
-      // Защита от агрегационной инъекции
-      if (
-        (req.query.sortField && (typeof req.query.sortField !== 'string' || Array.isArray(req.query.sortField))) ||
-        (req.query.search && (typeof req.query.search !== 'string' || Array.isArray(req.query.search)))
-      ) {
-        return res.status(400).json({ message: 'Неверные параметры запроса' })
-      }      
-  
-      // Нормализация лимита и страницы
       const parsedLimit = Number(limit)
       const safeLimit =
         !Number.isFinite(parsedLimit) || parsedLimit <= 0
@@ -42,8 +44,7 @@ export const getOrders = async (
           : Math.min(parsedLimit, 10)
   
       const parsedPage = Number(page)
-      const safePage =
-        !Number.isFinite(parsedPage) || parsedPage < 1 ? 1 : parsedPage
+      const safePage = !Number.isFinite(parsedPage) || parsedPage < 1 ? 1 : parsedPage
   
       const filters: FilterQuery<Partial<IOrder>> = {}
   
@@ -119,27 +120,26 @@ export const getOrders = async (
       }
   
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
+  
       const isValidSortField =
-      typeof sortField === 'string' && 
-      allowedSortFields.includes(sortField) &&
-      !sortField.includes('$') &&
-      !sortField.includes('.') &&
-      !sortField.includes('{') &&
-      !sortField.includes('[')
-      
+        allowedSortFields.includes(sortField) &&
+        !sortField.includes('$') &&
+        !sortField.includes('.') &&
+        !sortField.includes('{') &&
+        !sortField.includes('[')
+  
       if (!isValidSortField) {
         return res.status(400).json({ message: 'Недопустимое поле сортировки' })
-    }
-
-    const isValidSortOrder = sortOrder === 'asc' || sortOrder === 'desc'
-    if (!isValidSortOrder) {
+      }
+  
+      const isValidSortOrder = sortOrder === 'asc' || sortOrder === 'desc'
+      if (!isValidSortOrder) {
         return res.status(400).json({ message: 'Недопустимый порядок сортировки' })
-    }
-      
+      }
+  
       const sort: Record<string, 1 | -1> = {}
       sort[sortField] = sortOrder === 'desc' ? -1 : 1
-      
-
+  
       pipeline.push(
         { $sort: sort },
         { $skip: (safePage - 1) * safeLimit },
@@ -172,8 +172,8 @@ export const getOrders = async (
     } catch (error) {
       next(error)
     }
-  } 
-    
+  }
+      
   export const getOrdersCurrentUser = async (
     req: Request,
     res: Response,
