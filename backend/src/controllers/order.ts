@@ -13,38 +13,40 @@ export const getOrders = async (
     next: NextFunction
   ) => {
     try {
-      const {query} = req
+        type ParsedQueryValue = string | string[] | undefined;
+        const query = req.query as Record<string, ParsedQueryValue>;        
   
-      // 🚫 Проверка типов ДО деструктуризации (ловит вложенные объекты, инъекции и множественные значения)
-      if (
-        typeof query.sortField !== 'string' ||
-        typeof query.sortOrder !== 'string' ||
-        typeof query.search !== 'string'
-      ) {
-        return res.status(400).json({ message: 'Неверные параметры запроса' })
-      }
+      // 🔐 Защита от вложенных объектов, инъекций и массивов
+      const unsafeKeys = ['sortField', 'sortOrder', 'search', 'limit', 'page']
+      unsafeKeys.forEach((key) => {
+        const value = query[key]
+        if (
+          Array.isArray(value) ||
+          (typeof value === 'object' && value !== null && !Object.prototype.hasOwnProperty.call(value, 'toString'))
+        ) {
+          return res.status(400).json({ message: `Недопустимый формат поля ${key}` })
+        }
+      })
+  
+      // 🧼 Приведение к строкам и числам после валидации
+      const sortField = String(query.sortField ?? 'createdAt')
+      const sortOrder = String(query.sortOrder ?? 'desc')
+      const search = String(query.search ?? '')
+      const page = Number(query.page ?? 1)
+      const limit = Number(query.limit ?? 10)
+  
+      // 📏 Нормализация лимитов
+      const safeLimit =
+        !Number.isFinite(limit) || limit <= 0 ? 10 : Math.min(limit, 10)
+      const safePage = !Number.isFinite(page) || page < 1 ? 1 : page
   
       const {
-        page = 1,
-        limit = 10,
-        sortField = 'createdAt',
-        sortOrder = 'desc',
         status,
         totalAmountFrom,
         totalAmountTo,
         orderDateFrom,
-        orderDateTo,
-        search = '',
+        orderDateTo
       } = query
-  
-      const parsedLimit = Number(limit)
-      const safeLimit =
-        !Number.isFinite(parsedLimit) || parsedLimit <= 0
-          ? 10
-          : Math.min(parsedLimit, 10)
-  
-      const parsedPage = Number(page)
-      const safePage = !Number.isFinite(parsedPage) || parsedPage < 1 ? 1 : parsedPage
   
       const filters: FilterQuery<Partial<IOrder>> = {}
   
@@ -120,7 +122,6 @@ export const getOrders = async (
       }
   
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
-  
       const isValidSortField =
         allowedSortFields.includes(sortField) &&
         !sortField.includes('$') &&
@@ -172,7 +173,7 @@ export const getOrders = async (
     } catch (error) {
       next(error)
     }
-  }
+  }  
       
   export const getOrdersCurrentUser = async (
     req: Request,
