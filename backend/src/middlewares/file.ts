@@ -31,7 +31,7 @@ const storage = multer.diskStorage({
     const ext = extname(file.originalname).toLowerCase()
     const safeName = crypto.randomBytes(16).toString('hex') + ext
     cb(null, safeName)
-  },
+  }
 })
 
 const allowedTypes = [
@@ -40,7 +40,8 @@ const allowedTypes = [
   'image/jpeg',
   'image/gif',
   'image/svg+xml',
-  'image/webp', // ← добавить
+  'image/webp', // ← добавили!
+  'application/octet-stream' // ← на всякий случай
 ]
 
 const fileFilter = (
@@ -48,6 +49,7 @@ const fileFilter = (
   file: Express.Multer.File,
   cb: FileFilterCallback
 ) => {
+  console.log('📎 upload mimetype:', file.mimetype)
   if (!allowedTypes.includes(file.mimetype)) {
     return cb(null, false)
   }

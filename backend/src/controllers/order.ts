@@ -7,6 +7,7 @@ import Product, { IProduct } from '../models/product'
 import User from '../models/user'
 
 // GET /orders (admin)
+// GET /orders (admin)
 export const getOrders = async (
     req: Request,
     res: Response,
@@ -23,16 +24,16 @@ export const getOrders = async (
         totalAmountTo,
         orderDateFrom,
         orderDateTo,
-        search= '',
+        search = '',
       } = req.query
   
       // Защита от агрегационной инъекции
       if (
-        (sortField && (typeof sortField !== 'string' || Array.isArray(sortField))) ||
-        (search && (typeof search !== 'string' || Array.isArray(search)))
+        (req.query.sortField && (typeof req.query.sortField !== 'string' || Array.isArray(req.query.sortField))) ||
+        (req.query.search && (typeof req.query.search !== 'string' || Array.isArray(req.query.search)))
       ) {
         return res.status(400).json({ message: 'Неверные параметры запроса' })
-      }         
+      }
   
       // Нормализация лимита и страницы
       const parsedLimit = Number(limit)
@@ -52,19 +53,31 @@ export const getOrders = async (
       }
   
       if (totalAmountFrom) {
-        filters.totalAmount = { ...filters.totalAmount, $gte: Number(totalAmountFrom) }
+        filters.totalAmount = {
+          ...filters.totalAmount,
+          $gte: Number(totalAmountFrom),
+        }
       }
   
       if (totalAmountTo) {
-        filters.totalAmount = { ...filters.totalAmount, $lte: Number(totalAmountTo) }
+        filters.totalAmount = {
+          ...filters.totalAmount,
+          $lte: Number(totalAmountTo),
+        }
       }
   
       if (orderDateFrom) {
-        filters.createdAt = { ...filters.createdAt, $gte: new Date(orderDateFrom as string) }
+        filters.createdAt = {
+          ...filters.createdAt,
+          $gte: new Date(orderDateFrom as string),
+        }
       }
   
       if (orderDateTo) {
-        filters.createdAt = { ...filters.createdAt, $lte: new Date(orderDateTo as string) }
+        filters.createdAt = {
+          ...filters.createdAt,
+          $lte: new Date(orderDateTo as string),
+        }
       }
   
       const pipeline: any[] = [
@@ -109,8 +122,8 @@ export const getOrders = async (
       const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
       const sort: Record<string, 1 | -1> = {}
   
-      if (allowedSortFields.includes(sortField)) {
-        sort[sortField] = sortOrder === 'desc' ? -1 : 1
+      if (allowedSortFields.includes(sortField as string)) {
+        sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
       } else {
         sort.createdAt = -1
       }
@@ -147,8 +160,7 @@ export const getOrders = async (
     } catch (error) {
       next(error)
     }
-  }
-  
+  } 
     
   export const getOrdersCurrentUser = async (
     req: Request,
