@@ -13,45 +13,43 @@ export const getOrders = async (
     next: NextFunction
   ) => {
     try {
-        type ParsedQueryValue = string | string[] | undefined;
-        const query = req.query as Record<string, ParsedQueryValue>;        
-  
-      // 🔐 Защита от вложенных объектов, инъекций и массивов
-      const unsafeKeys = ['sortField', 'sortOrder', 'search', 'limit', 'page']
-      unsafeKeys.forEach((key) => {
-        const value = query[key]
-        if (
-          Array.isArray(value) ||
-          (typeof value === 'object' && value !== null && !Object.prototype.hasOwnProperty.call(value, 'toString'))
-        ) {
-          return res.status(400).json({ message: `Недопустимый формат поля ${key}` })
-        }
-      })
-  
-      // 🧼 Приведение к строкам и числам после валидации
-      const sortField = String(query.sortField ?? 'createdAt')
-      const sortOrder = String(query.sortOrder ?? 'desc')
-      const search = String(query.search ?? '')
-      const page = Number(query.page ?? 1)
-      const limit = Number(query.limit ?? 10)
-  
-      // 📏 Нормализация лимитов
-      const safeLimit =
-        !Number.isFinite(limit) || limit <= 0 ? 10 : Math.min(limit, 10)
-      const safePage = !Number.isFinite(page) || page < 1 ? 1 : page
-  
       const {
+        page = 1,
+        limit = 10,
+        sortField = 'createdAt',
+        sortOrder = 'desc',
         status,
         totalAmountFrom,
         totalAmountTo,
         orderDateFrom,
-        orderDateTo
-      } = query
+        orderDateTo,
+        search,
+      } = req.query
   
+      const correctLimit = Math.min(Number(limit), 5).toString()
       const filters: FilterQuery<Partial<IOrder>> = {}
   
-      if (status && typeof status === 'string') {
-        filters.status = status
+      if (status) {
+        if (typeof status === 'string' && /^[a-zA-Z0-9_-]+$/.test(status)) {
+          filters.status = status
+        } else {
+          throw new BadRequestError('Передан невалидный параметр статуса')
+        }
+      }
+  
+      if (search) {
+        if (/[^\w\s]/.test(search as string)) {
+          throw new BadRequestError('Передан невалидный поисковый запрос')
+        }
+      }
+  
+      if (status) {
+        if (typeof status === 'object') {
+          Object.assign(filters, status)
+        }
+        if (typeof status === 'string') {
+          filters.status = status
+        }
       }
   
       if (totalAmountFrom) {
@@ -82,7 +80,7 @@ export const getOrders = async (
         }
       }
   
-      const pipeline: any[] = [
+      const aggregatePipeline: any[] = [
         { $match: filters },
         {
           $lookup: {
@@ -101,73 +99,62 @@ export const getOrders = async (
           },
         },
         { $unwind: '$customer' },
+        { $unwind: '$products' },
       ]
   
-      const isSafeSearch =
-        typeof search === 'string' &&
-        search.length < 100 &&
-        /^[\wа-яА-ЯёЁ0-9\s\-.,]+$/.test(search)
-  
-      if (search && isSafeSearch) {
-        const searchRegex = new RegExp(search, 'i')
+      if (search) {
+        const searchRegex = new RegExp(search as string, 'i')
         const searchNumber = Number(search)
-        const conditions: any[] = [
-          { 'products.title': searchRegex },
-          { 'customer.name': searchRegex },
-        ]
+  
+        const searchConditions: any[] = [{ 'products.title': searchRegex }]
+  
         if (!Number.isNaN(searchNumber)) {
-          conditions.push({ orderNumber: searchNumber })
+          searchConditions.push({ orderNumber: searchNumber })
         }
-        pipeline.push({ $match: { $or: conditions } })
+  
+        aggregatePipeline.push({
+          $match: {
+            $or: searchConditions,
+          },
+        })
+  
+        filters.$or = searchConditions
       }
   
-      const allowedSortFields = ['createdAt', 'totalAmount', 'orderNumber']
-      const isValidSortField =
-        allowedSortFields.includes(sortField) &&
-        !sortField.includes('$') &&
-        !sortField.includes('.') &&
-        !sortField.includes('{') &&
-        !sortField.includes('[')
+      const sort: { [key: string]: any } = {}
   
-      if (!isValidSortField) {
-        return res.status(400).json({ message: 'Недопустимое поле сортировки' })
+      if (sortField && sortOrder) {
+        sort[sortField as string] = sortOrder === 'desc' ? -1 : 1
       }
   
-      const isValidSortOrder = sortOrder === 'asc' || sortOrder === 'desc'
-      if (!isValidSortOrder) {
-        return res.status(400).json({ message: 'Недопустимый порядок сортировки' })
-      }
-  
-      const sort: Record<string, 1 | -1> = {}
-      sort[sortField] = sortOrder === 'desc' ? -1 : 1
-  
-      pipeline.push(
+      aggregatePipeline.push(
         { $sort: sort },
-        { $skip: (safePage - 1) * safeLimit },
-        { $limit: safeLimit },
+        { $skip: (Number(page) - 1) * Number(correctLimit) },
+        { $limit: Number(correctLimit) },
         {
-          $project: {
-            orderNumber: 1,
-            status: 1,
-            totalAmount: 1,
-            products: 1,
-            customer: 1,
-            createdAt: 1,
+          $group: {
+            _id: '$_id',
+            orderNumber: { $first: '$orderNumber' },
+            status: { $first: '$status' },
+            totalAmount: { $first: '$totalAmount' },
+            products: { $push: '$products' },
+            customer: { $first: '$customer' },
+            createdAt: { $first: '$createdAt' },
           },
         }
       )
   
-      const orders = await Order.aggregate(pipeline)
+      const orders = await Order.aggregate(aggregatePipeline)
       const totalOrders = await Order.countDocuments(filters)
-      const totalPages = Math.ceil(totalOrders / safeLimit)
+      const totalPages = Math.ceil(totalOrders / Number(correctLimit))
   
-      return res.status(200).json({
+      res.status(200).json({
         orders,
         pagination: {
           totalOrders,
           totalPages,
-          currentPage: safePage,
-          pageSize: safeLimit,
+          currentPage: Number(page),
+          pageSize: Number(correctLimit),
         },
       })
     } catch (error) {
