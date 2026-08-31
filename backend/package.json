@@ -1,7 +1,7 @@
 {
   "name": "weblarek_backend",
   "version": "1.0.0",
-  "description": "< Добавьте описание проекта в свободной форме >",
+  "description": "Secure REST API for the WebLarek e-commerce service",
   "main": "dist/app.js",
   "scripts": {
     "lint": "npx eslint src/**/*.ts",
@@ -11,7 +11,7 @@
     "start": "ts-node src/app.ts",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "< Укажите здесь автора работы >",
+  "author": "nestlir",
   "license": "ISC",
   "devDependencies": {
     "@types/bcrypt": "^5.0.2",

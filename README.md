@@ -1,40 +1,76 @@
 # WebLarek Backend — Secure REST API
 
-> Backend e-commerce service focused on authentication, authorization, orders and defensive programming.
+Backend service for an e-commerce application with authentication, authorization, products and order workflows.
 
-## Overview
-
-A server-side e-commerce API implementing user accounts, token-based authentication, product access and order workflows. The project also focuses on common web-security threats and safe handling of untrusted input.
-
-## Key capabilities
+## Features
 
 - user registration and login;
 - JWT-based authentication;
-- refresh-token protection using cookies and hashing;
-- role separation: user / administrator;
+- refresh-token handling with cookies and hashing;
+- role separation;
 - product endpoints;
-- authenticated order creation and retrieval;
-- validation and error handling;
-- defensive handling of XSS, NoSQL injection, ReDoS, DDoS-style abuse and path traversal risks.
-
-## Security focus
-
-The project is valuable as a backend case study because security is treated as part of the application design rather than an afterthought. Authentication boundaries, token handling and untrusted input are explicit parts of the implementation.
-
-## API examples
-
-```text
-POST /auth/register
-POST /auth/login
-GET  /product
-POST /order
-GET  /order/all/me
-```
+- authenticated order workflows;
+- validation and centralized error handling;
+- rate limiting and security middleware;
+- defensive handling of untrusted input.
 
 ## Stack
 
-**Node.js · TypeScript · REST API · JWT · cookies · hashing**
+- Node.js
+- TypeScript
+- Express
+- MongoDB
+- Mongoose
+- JWT
+- Docker
 
-## Context
+## Architecture
 
-Originally created during backend training; presented here as a security-oriented backend case study demonstrating API design and authentication fundamentals.
+```text
+HTTP request
+    ↓
+Express routes/controllers
+    ↓
+Validation and middleware
+    ↓
+Models and persistence
+    ↓
+MongoDB
+```
+
+## Run locally
+
+Requirements:
+
+- Node.js 20+
+- npm
+- MongoDB
+
+```bash
+cd backend
+npm ci
+cp .env.example .env
+npm run dev
+```
+
+Configure the required environment variables in `backend/.env`.
+
+## Quality checks
+
+```bash
+npm run lint
+npm run build
+npm run format
+```
+
+## CI
+
+The repository includes a GitHub Actions workflow that runs the project's external validation suite.
+
+## Deployment
+
+This is a backend API and requires a Node.js runtime plus database configuration. GitHub Pages is therefore not an appropriate deployment target. The included Dockerfile can be used as the basis for deployment to a container-capable hosting platform.
+
+## Project value
+
+The repository is maintained as a backend portfolio case study with particular emphasis on authentication boundaries, input validation and defensive security practices.
