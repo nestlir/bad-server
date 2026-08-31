@@ -1,5 +1,5 @@
 {
-  "name": "weblarek_backend",
+  "name": "bad-server",
   "version": "1.0.0",
   "description": "Secure REST API for the WebLarek e-commerce service",
   "main": "dist/app.js",
@@ -7,9 +7,9 @@
     "lint": "npx eslint src/**/*.ts",
     "format": "prettier ./src --write",
     "build": "tsc",
-    "dev": "npx nodemon -L src/app.ts ",
+    "dev": "ts-node-dev --respawn --transpile-only src/app.ts",
     "start": "ts-node src/app.ts",
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"No local test suite is configured yet. Use the CI validation workflow.\" && exit 0"
   },
   "author": "nestlir",
   "license": "ISC",
