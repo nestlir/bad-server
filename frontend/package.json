@@ -43,7 +43,7 @@
     "sass": "^1.77.2",
     "typescript": "^5.2.2",
     "vite": "^5.2.0",
-    "prettier": "^3.3.3",
+    "prettier": "^3.9.6",
     "vite-tsconfig-paths": "^4.3.2"
   }
 }
